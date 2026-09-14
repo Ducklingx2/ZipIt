@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ZipIt</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <a
+        href="#"
+        class="logo"
+    >
+        ZipIt<span>.</span>
+    </a>
+
+    <nav>
+        <a href="#explore">
+            Explore
+        </a>
+
+        <a href="#orders">
+            Orders
+        </a>
+    </nav>
+
+</header>
+
+<main>
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <div class="eyebrow">
+            LOCAL SERVICES · DELIVERED
+        </div>
+
+        <h1>
+            Get it fixed.
+            <br>
+            Get it cleaned.
+            <br>
+            <span>Get it ZipIt.</span>
+        </h1>
+
+        <p>
+            Local tailors, laundries, repair shops
+            and more. We pick it up, get it sorted,
+            and bring it back.
+        </p>
+
+        <button
+            class="primary"
+            onclick="scrollToExplore()"
+        >
+            Find a service
+        </button>
+
+    </div>
+
+    <div class="hero-card">
+
+        <div class="hero-card-top">
+            <span>Nearby</span>
+
+            <span class="live">
+                ● LIVE
+            </span>
+        </div>
+
+        <div id="heroProviders"></div>
+
+    </div>
+
+</section>
+
+
+<section
+    id="explore"
+    class="section"
+>
+
+    <div class="section-header">
+
+        <div>
+            <div class="eyebrow">
+                EXPLORE
+            </div>
+
+            <h2>
+                Services near you
+            </h2>
+        </div>
+
+        <input
+            id="search"
+            class="search"
+            placeholder="Search services..."
+        >
+
+    </div>
+
+    <div
+        id="providers"
+        class="provider-grid"
+    ></div>
+
+</section>
+
+
+<section
+    id="providerView"
+    class="section hidden"
+>
+
+    <button
+        class="back"
+        onclick="showExplore()"
+    >
+        ← Back
+    </button>
+
+    <div id="providerDetails"></div>
+
+</section>
+
+
+<section
+    id="checkout"
+    class="section hidden"
+>
+
+    <button
+        class="back"
+        onclick="showExplore()"
+    >
+        ← Back
+    </button>
+
+    <div
+        id="checkoutContent"
+        class="checkout"
+    ></div>
+
+</section>
+
+
+<section
+    id="tracking"
+    class="section hidden"
+>
+
+    <div id="trackingContent"></div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+    <strong>
+        ZipIt.
+    </strong>
+
+    <span>
+        Local services, without the hassle.
+    </span>
+
+</footer>
+
+<script src="app.js"></script>
+
+</body>
+</html>

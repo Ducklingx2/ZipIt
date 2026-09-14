@@ -1,528 +1,947 @@
-const API =
-    "http://localhost:10000/api";
-
+const API = "http://localhost:10000/api";
 
 let providers = [];
 let selectedProvider = null;
 let selectedService = null;
 let currentOrder = null;
 
+const mainScreen = document.getElementById("mainScreen");
+const providerScreen = document.getElementById("providerScreen");
+const checkoutScreen = document.getElementById("checkoutScreen");
+const trackingScreen = document.getElementById("trackingScreen");
 
-// -----------------------------
-// INITIAL LOAD
-// -----------------------------
+const providerList = document.getElementById("providerList");
+const providerCount = document.getElementById("providerCount");
+
+const searchInput = document.getElementById("searchInput");
+const clearSearch = document.getElementById("clearSearch");
+
+const providerDetail = document.getElementById("providerDetail");
+
+const checkoutService =
+    document.getElementById("checkoutService");
+
+const checkoutProvider =
+    document.getElementById("checkoutProvider");
+
+const checkoutServicePrice =
+    document.getElementById("checkoutServicePrice");
+
+const checkoutDeliveryPrice =
+    document.getElementById("checkoutDeliveryPrice");
+
+const checkoutTotal =
+    document.getElementById("checkoutTotal");
+
+const checkoutIcon =
+    document.getElementById("checkoutIcon");
+
+const confirmOrder =
+    document.getElementById("confirmOrder");
+
+const trackingStatus =
+    document.getElementById("trackingStatus");
+
+const trackingDescription =
+    document.getElementById("trackingDescription");
+
+const courierName =
+    document.getElementById("courierName");
+
+const courierVehicle =
+    document.getElementById("courierVehicle");
+
+const courierRating =
+    document.getElementById("courierRating");
+
+const courierAvatar =
+    document.getElementById("courierAvatar");
+
+const courierMapLabel =
+    document.getElementById("courierMapLabel");
+
+const orderId =
+    document.getElementById("orderId");
+
+
+/* ------------------------------
+   INITIAL LOAD
+------------------------------ */
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadProviders();
+    setupEvents();
+});
+
+
+/* ------------------------------
+   API
+------------------------------ */
+
+async function apiRequest(url, options = {}) {
+
+    const response = await fetch(`${API}${url}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            `API error ${response.status}`
+        );
+    }
+
+    return response.json();
+}
+
 
 async function loadProviders() {
 
-    const container =
-        document.getElementById("provider-list");
+    providerList.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            Finding nearby services...
+        </div>
+    `;
 
     try {
 
-        const response =
-            await fetch(`${API}/providers`);
+        providers = await apiRequest("/providers");
 
-        if (!response.ok) {
-            throw new Error("Failed to load providers");
-        }
+        renderProviders(providers);
 
-        providers =
-            await response.json();
-
-        renderProviders();
+        updateMapMarkers(providers);
 
     } catch (error) {
 
         console.error(error);
 
-        container.innerHTML = `
-            <div class="error">
-                Could not connect to ZipIt.
-                Make sure the Rust backend is running.
+        providerList.innerHTML = `
+            <div class="loading">
+                <strong>
+                    Couldn't connect to ZipIt.
+                </strong>
+                <br>
+                Start the Rust server first.
             </div>
         `;
+
     }
 }
 
 
-// -----------------------------
-// PROVIDER CARDS
-// -----------------------------
+/* ------------------------------
+   PROVIDERS
+------------------------------ */
 
-function renderProviders() {
+function renderProviders(list) {
 
-    const container =
-        document.getElementById("provider-list");
+    providerCount.textContent =
+        `${list.length} ${list.length === 1 ? "place" : "places"}`;
 
-    container.innerHTML = "";
+    if (!list.length) {
 
-    providers.forEach(provider => {
-
-        const card =
-            document.createElement("div");
-
-        card.className =
-            "provider-card";
-
-        card.innerHTML = `
-
-            <div class="provider-icon">
-                ${getProviderIcon(provider.category)}
-            </div>
-
-            <div class="provider-info">
-
-                <div class="provider-top">
-
-                    <h3>
-                        ${provider.name}
-                    </h3>
-
-                    <span class="rating">
-                        ★ ${provider.rating}
-                    </span>
-
-                </div>
-
-                <p class="category">
-                    ${provider.category}
-                </p>
-
-                <p class="address">
-                    ${provider.address}
-                </p>
-
-            </div>
-
-            <div class="arrow">
-                →
+        providerList.innerHTML = `
+            <div class="loading">
+                No services found.
             </div>
         `;
-
-        card.onclick = () =>
-            selectProvider(provider.id);
-
-        container.appendChild(card);
-    });
-}
-
-
-// -----------------------------
-// SELECT PROVIDER
-// -----------------------------
-
-async function selectProvider(id) {
-
-    try {
-
-        const response =
-            await fetch(`${API}/providers/${id}`);
-
-        selectedProvider =
-            await response.json();
-
-        renderProviderDetail();
-
-        showSection("provider-section");
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert("Could not load this provider.");
-    }
-}
-
-
-// -----------------------------
-// PROVIDER DETAIL
-// -----------------------------
-
-function renderProviderDetail() {
-
-    const container =
-        document.getElementById("provider-detail");
-
-    container.innerHTML = `
-
-        <div class="provider-header">
-
-            <div>
-
-                <p class="eyebrow">
-                    ${selectedProvider.category}
-                </p>
-
-                <h2>
-                    ${selectedProvider.name}
-                </h2>
-
-                <p>
-                    ★ ${selectedProvider.rating}
-                    · ${selectedProvider.address}
-                </p>
-
-            </div>
-
-        </div>
-
-        <h3 class="service-title">
-            Choose what you need
-        </h3>
-
-        <div class="service-list">
-
-            ${selectedProvider.services
-                .map(service => `
-
-                    <div
-                        class="service-card"
-                        onclick="selectService('${service.id}')"
-                    >
-
-                        <div>
-
-                            <h3>
-                                ${service.name}
-                            </h3>
-
-                            <p>
-                                Approx.
-                                ${service.estimated_minutes}
-                                min
-                            </p>
-
-                        </div>
-
-                        <strong>
-                            ₹${service.price}
-                        </strong>
-
-                    </div>
-
-                `)
-                .join("")}
-
-        </div>
-    `;
-}
-
-
-// -----------------------------
-// SELECT SERVICE
-// -----------------------------
-
-function selectService(serviceId) {
-
-    selectedService =
-        selectedProvider.services.find(
-            service => service.id === serviceId
-        );
-
-    renderCheckout();
-
-    showSection("checkout-section");
-}
-
-
-// -----------------------------
-// CHECKOUT
-// -----------------------------
-
-function renderCheckout() {
-
-    const container =
-        document.getElementById("checkout-details");
-
-    const estimatedDelivery =
-        60;
-
-    const total =
-        selectedService.price +
-        estimatedDelivery;
-
-    container.innerHTML = `
-
-        <div class="order-summary">
-
-            <div>
-                <span>Service</span>
-                <strong>
-                    ${selectedService.name}
-                </strong>
-            </div>
-
-            <div>
-                <span>Provider</span>
-                <strong>
-                    ${selectedProvider.name}
-                </strong>
-            </div>
-
-            <div>
-                <span>Service price</span>
-                <strong>
-                    ₹${selectedService.price}
-                </strong>
-            </div>
-
-            <div>
-                <span>Estimated delivery</span>
-                <strong>
-                    ₹${estimatedDelivery}
-                </strong>
-            </div>
-
-            <div class="total">
-
-                <span>
-                    Estimated total
-                </span>
-
-                <strong>
-                    ₹${total}
-                </strong>
-
-            </div>
-
-        </div>
-    `;
-}
-
-
-// -----------------------------
-// CREATE ORDER
-// -----------------------------
-
-async function placeOrder() {
-
-    const name =
-        document
-            .getElementById("customer-name")
-            .value
-            .trim();
-
-    if (!name) {
-
-        alert("Enter your name first.");
 
         return;
     }
 
-    const button =
-        document.querySelector(
-            "#checkout-section .primary-button"
-        );
+    providerList.innerHTML = list
+        .map(provider => {
 
-    button.disabled = true;
+            return `
+                <button
+                    class="provider-card"
+                    data-provider="${provider.id}"
+                >
 
-    button.textContent =
-        "Finding nearby courier...";
+                    <div class="provider-icon">
+                        ${getProviderIcon(provider.category)}
+                    </div>
+
+                    <div class="provider-main">
+
+                        <h3>
+                            ${escapeHtml(provider.name)}
+                        </h3>
+
+                        <div class="provider-meta">
+                            ${escapeHtml(provider.category)}
+                            ·
+                            ${escapeHtml(provider.address)}
+                        </div>
+
+                        <div class="provider-rating">
+                            <span class="star">★</span>
+                            ${provider.rating.toFixed(1)}
+                        </div>
+
+                    </div>
+
+                    <div class="provider-arrow">
+                        ›
+                    </div>
+
+                </button>
+            `;
+
+        })
+        .join("");
+
+    document
+        .querySelectorAll(".provider-card")
+        .forEach(card => {
+
+            card.addEventListener("click", () => {
+
+                const provider =
+                    providers.find(
+                        p => p.id === card.dataset.provider
+                    );
+
+                if (provider) {
+                    openProvider(provider);
+                }
+
+            });
+
+        });
+}
+
+
+function getProviderIcon(category) {
+
+    switch (category) {
+
+        case "Tailoring":
+            return "✂";
+
+        case "Laundry":
+            return "▱";
+
+        case "Shoe Repair":
+            return "⌁";
+
+        default:
+            return "●";
+    }
+}
+
+
+/* ------------------------------
+   PROVIDER
+------------------------------ */
+
+function openProvider(provider) {
+
+    selectedProvider = provider;
+
+    selectedService = null;
+
+    mainScreen.classList.add("hidden");
+    checkoutScreen.classList.add("hidden");
+    trackingScreen.classList.add("hidden");
+
+    providerScreen.classList.remove("hidden");
+
+    providerDetail.innerHTML = `
+
+        <div class="provider-detail">
+
+            <div class="detail-hero">
+
+                <span class="detail-category">
+                    ${escapeHtml(provider.category)}
+                </span>
+
+                <h1>
+                    ${escapeHtml(provider.name)}
+                </h1>
+
+                <span class="detail-address">
+                    ${escapeHtml(provider.address)}
+                </span>
+
+                <div class="detail-rating">
+                    ★ ${provider.rating.toFixed(1)}
+                </div>
+
+            </div>
+
+
+            <h2 class="service-title">
+                Choose a service
+            </h2>
+
+
+            <div id="serviceList">
+
+                ${provider.services
+                    .map(service => `
+
+                        <button
+                            class="service-card"
+                            data-service="${service.id}"
+                        >
+
+                            <div class="service-main">
+
+                                <strong>
+                                    ${escapeHtml(service.name)}
+                                </strong>
+
+                                <span>
+                                    Estimated time:
+                                    ${service.estimated_minutes}
+                                    min
+                                </span>
+
+                            </div>
+
+                            <div class="service-price">
+                                ₹${service.price}
+                            </div>
+
+                            <div class="select-circle">
+                            </div>
+
+                        </button>
+
+                    `)
+                    .join("")}
+
+            </div>
+
+        </div>
+    `;
+
+
+    document
+        .querySelectorAll(".service-card")
+        .forEach(card => {
+
+            card.addEventListener("click", () => {
+
+                document
+                    .querySelectorAll(".service-card")
+                    .forEach(c =>
+                        c.classList.remove("selected")
+                    );
+
+                card.classList.add("selected");
+
+                const service =
+                    provider.services.find(
+                        s => s.id === card.dataset.service
+                    );
+
+                if (!service) return;
+
+                selectedService = service;
+
+                const circle =
+                    card.querySelector(".select-circle");
+
+                circle.textContent = "✓";
+
+                document
+                    .querySelectorAll(
+                        ".service-card:not(.selected) .select-circle"
+                    )
+                    .forEach(el => {
+                        el.textContent = "";
+                    });
+
+                setTimeout(() => {
+                    openCheckout();
+                }, 180);
+
+            });
+
+        });
+}
+
+
+/* ------------------------------
+   CHECKOUT
+------------------------------ */
+
+function openCheckout() {
+
+    if (!selectedProvider || !selectedService) {
+        return;
+    }
+
+    providerScreen.classList.add("hidden");
+    checkoutScreen.classList.remove("hidden");
+
+    checkoutService.textContent =
+        selectedService.name;
+
+    checkoutProvider.textContent =
+        selectedProvider.name;
+
+    checkoutServicePrice.textContent =
+        `₹${selectedService.price}`;
+
+    const estimatedDistance = 1.5;
+
+    const deliveryFee =
+        estimatedDistance < 2
+            ? 40
+            : estimatedDistance < 5
+                ? 60
+                : 90;
+
+    checkoutDeliveryPrice.textContent =
+        `₹${deliveryFee}`;
+
+    checkoutTotal.textContent =
+        `₹${selectedService.price + deliveryFee}`;
+
+    checkoutIcon.textContent =
+        getProviderIcon(selectedProvider.category);
+}
+
+
+/* ------------------------------
+   CREATE ORDER
+------------------------------ */
+
+async function createOrder() {
+
+    if (!selectedProvider || !selectedService) {
+        return;
+    }
+
+    confirmOrder.disabled = true;
+
+    confirmOrder.innerHTML = `
+        <span>Finding a nearby courier...</span>
+        <span class="spinner"></span>
+    `;
 
     try {
 
-        const response =
-            await fetch(`${API}/orders`, {
+        const order =
+            await apiRequest("/orders", {
 
                 method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
                 body: JSON.stringify({
 
-                    customer_name: name,
+                    customer_name: "Vihaan",
 
                     provider_id:
                         selectedProvider.id,
 
                     service_id:
                         selectedService.id
+
                 })
+
             });
 
-        if (!response.ok) {
+        currentOrder = order;
 
-            throw new Error(
-                "No courier available"
-            );
-        }
-
-        currentOrder =
-            await response.json();
-
-        renderTracking();
-
-        showSection("tracking-section");
+        showTracking(order);
 
     } catch (error) {
 
         console.error(error);
 
         alert(
-            "We couldn't find a courier right now."
+            "ZipIt couldn't find an available courier."
         );
 
     } finally {
 
-        button.disabled = false;
+        confirmOrder.disabled = false;
 
-        button.textContent =
-            "Find me a courier";
+        confirmOrder.innerHTML = `
+            <span>Find me a courier</span>
+            <span>→</span>
+        `;
     }
 }
 
 
-// -----------------------------
-// TRACKING
-// -----------------------------
+/* ------------------------------
+   TRACKING
+------------------------------ */
 
-function renderTracking() {
+function showTracking(order) {
 
-    const container =
-        document.getElementById(
-            "tracking-details"
-        );
+    checkoutScreen.classList.add("hidden");
+    trackingScreen.classList.remove("hidden");
 
-    const delivery =
-        currentOrder.delivery;
+    orderId.textContent =
+        order.id.slice(0, 8).toUpperCase();
 
-    container.innerHTML = `
+    updateTracking(order);
 
-        <div class="courier-card">
-
-            <div class="courier-avatar">
-                ${delivery.courier_name
-                    .charAt(0)
-                    .toUpperCase()}
-            </div>
-
-            <div>
-
-                <p class="eyebrow">
-                    YOUR COURIER
-                </p>
-
-                <h3>
-                    ${delivery.courier_name}
-                </h3>
-
-                <p>
-                    ${delivery.distance_km} km away
-                </p>
-
-            </div>
-
-            <div class="courier-status">
-                ● Online
-            </div>
-
-        </div>
-
-        <div class="delivery-price">
-
-            <span>
-                Delivery
-            </span>
-
-            <strong>
-                ₹${delivery.delivery_fee}
-            </strong>
-
-        </div>
-
-        <div class="tracking-order">
-
-            <span>
-                Order
-            </span>
-
-            <code>
-                ${currentOrder.id.slice(0, 8)}
-            </code>
-
-        </div>
-    `;
+    startOrderPolling(order.id);
 }
 
 
-// -----------------------------
-// NAVIGATION
-// -----------------------------
+function updateTracking(order) {
 
-function showSection(sectionId) {
+    const delivery =
+        order.delivery;
 
-    [
-        "provider-section",
-        "checkout-section",
-        "tracking-section"
-    ].forEach(id => {
+    if (!delivery) {
 
-        document
-            .getElementById(id)
-            .classList.add("hidden");
+        trackingStatus.textContent =
+            "Finding a courier";
+
+        trackingDescription.textContent =
+            "Looking for someone nearby.";
+
+        return;
+    }
+
+    courierName.textContent =
+        delivery.courier_name;
+
+    courierVehicle.textContent =
+        "Courier · Assigned";
+
+    courierRating.textContent =
+        "--";
+
+    courierAvatar.textContent =
+        delivery.courier_name
+            .charAt(0)
+            .toUpperCase();
+
+    courierMapLabel.textContent =
+        delivery.courier_name;
+
+
+    switch (order.status) {
+
+        case "Courier assigned":
+
+            trackingStatus.textContent =
+                "Courier assigned";
+
+            trackingDescription.textContent =
+                `${delivery.courier_name} is ready to collect your item.`;
+
+            break;
+
+
+        case "Picked up":
+
+            trackingStatus.textContent =
+                "Item picked up";
+
+            trackingDescription.textContent =
+                "Your item is on its way to the service provider.";
+
+            break;
+
+
+        case "At provider":
+
+            trackingStatus.textContent =
+                "At service provider";
+
+            trackingDescription.textContent =
+                `${order.provider_name} has received your item.`;
+
+            break;
+
+
+        case "Ready":
+
+            trackingStatus.textContent =
+                "Ready for return";
+
+            trackingDescription.textContent =
+                "Your item is ready to come back to you.";
+
+            break;
+
+
+        case "Returning":
+
+            trackingStatus.textContent =
+                "Returning to you";
+
+            trackingDescription.textContent =
+                "Your courier is bringing your item back.";
+
+            break;
+
+
+        case "Delivered":
+
+            trackingStatus.textContent =
+                "Delivered";
+
+            trackingDescription.textContent =
+                "Your ZipIt order is complete.";
+
+            break;
+
+
+        default:
+
+            trackingStatus.textContent =
+                order.status;
+
+            trackingDescription.textContent =
+                "Your order is being processed.";
+    }
+}
+
+
+/* ------------------------------
+   POLLING
+------------------------------ */
+
+let pollingTimer = null;
+
+function startOrderPolling(id) {
+
+    if (pollingTimer) {
+        clearInterval(pollingTimer);
+    }
+
+    pollingTimer = setInterval(
+        async () => {
+
+            try {
+
+                const order =
+                    await apiRequest(
+                        `/orders/${id}`
+                    );
+
+                currentOrder = order;
+
+                updateTracking(order);
+
+            } catch (error) {
+
+                console.error(
+                    "Tracking update failed:",
+                    error
+                );
+
+            }
+
+        },
+        3000
+    );
+}
+
+
+/* ------------------------------
+   SEARCH
+------------------------------ */
+
+searchInput.addEventListener(
+    "input",
+    () => {
+
+        const query =
+            searchInput.value
+                .trim()
+                .toLowerCase();
+
+        clearSearch.classList.toggle(
+            "hidden",
+            !query
+        );
+
+        const filtered =
+            providers.filter(provider => {
+
+                const providerText =
+                    `${provider.name}
+                    ${provider.category}
+                    ${provider.address}
+                    ${provider.services
+                        .map(s => s.name)
+                        .join(" ")}`
+                        .toLowerCase();
+
+                return providerText.includes(query);
+
+            });
+
+        renderProviders(filtered);
+
+    }
+);
+
+
+clearSearch.addEventListener(
+    "click",
+    () => {
+
+        searchInput.value = "";
+
+        clearSearch.classList.add(
+            "hidden"
+        );
+
+        renderProviders(providers);
+
+        searchInput.focus();
+
+    }
+);
+
+
+/* ------------------------------
+   CATEGORIES
+------------------------------ */
+
+document
+    .querySelectorAll(".category")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(".category")
+                    .forEach(btn =>
+                        btn.classList.remove("active")
+                    );
+
+                button.classList.add("active");
+
+                const category =
+                    button.dataset.category;
+
+                if (category === "All") {
+
+                    renderProviders(providers);
+
+                    return;
+                }
+
+                const filtered =
+                    providers.filter(
+                        p => p.category === category
+                    );
+
+                renderProviders(filtered);
+
+            }
+        );
 
     });
 
-    document
-        .getElementById(sectionId)
-        .classList.remove("hidden");
 
-    document
-        .getElementById(sectionId)
-        .scrollIntoView({
-            behavior: "smooth"
+/* ------------------------------
+   NAVIGATION
+------------------------------ */
+
+function showHome() {
+
+    providerScreen.classList.add("hidden");
+    checkoutScreen.classList.add("hidden");
+    trackingScreen.classList.add("hidden");
+
+    mainScreen.classList.remove("hidden");
+
+}
+
+
+document
+    .getElementById("providerBack")
+    .addEventListener(
+        "click",
+        showHome
+    );
+
+
+document
+    .getElementById("checkoutBack")
+    .addEventListener(
+        "click",
+        () => {
+
+            checkoutScreen.classList.add(
+                "hidden"
+            );
+
+            providerScreen.classList.remove(
+                "hidden"
+            );
+
+        }
+    );
+
+
+document
+    .getElementById("trackingBack")
+    .addEventListener(
+        "click",
+        showHome
+    );
+
+
+document
+    .querySelectorAll(".nav-item")
+    .forEach(item => {
+
+        item.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(".nav-item")
+                    .forEach(nav =>
+                        nav.classList.remove("active")
+                    );
+
+                item.classList.add("active");
+
+                if (
+                    item.dataset.screen === "home"
+                ) {
+                    showHome();
+                }
+
+            }
+        );
+
+    });
+
+
+/* ------------------------------
+   LOCATION
+------------------------------ */
+
+document
+    .getElementById("locationButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (!navigator.geolocation) {
+
+                alert(
+                    "Location isn't available in this browser."
+                );
+
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                position => {
+
+                    const lat =
+                        position.coords.latitude
+                            .toFixed(4);
+
+                    const lon =
+                        position.coords.longitude
+                            .toFixed(4);
+
+                    document
+                        .getElementById("locationText")
+                        .textContent =
+                        `${lat}, ${lon}`;
+
+                },
+
+                () => {
+
+                    document
+                        .getElementById("locationText")
+                        .textContent =
+                        "Location unavailable";
+
+                }
+            );
+
+        }
+    );
+
+
+document
+    .getElementById("recenterButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            document
+                .getElementById("locationButton")
+                .click();
+
+        }
+    );
+
+
+/* ------------------------------
+   MAP
+------------------------------ */
+
+function updateMapMarkers(providerList) {
+
+    const markers =
+        document.querySelectorAll(
+            ".provider-marker"
+        );
+
+    markers.forEach(
+        marker => {
+            marker.style.display = "none";
+        }
+    );
+
+    providerList
+        .slice(0, 3)
+        .forEach((provider, index) => {
+
+            if (markers[index]) {
+                markers[index].style.display =
+                    "flex";
+            }
+
         });
 }
 
 
-function goBackToProviders() {
+/* ------------------------------
+   EVENTS
+------------------------------ */
 
-    document
-        .getElementById("provider-section")
-        .classList.add("hidden");
+function setupEvents() {
 
-    document
-        .getElementById("services")
-        .scrollIntoView({
-            behavior: "smooth"
-        });
+    confirmOrder.addEventListener(
+        "click",
+        createOrder
+    );
+
 }
 
 
-function scrollToServices() {
+/* ------------------------------
+   SAFETY / HTML
+------------------------------ */
 
-    document
-        .getElementById("services")
-        .scrollIntoView({
-            behavior: "smooth"
-        });
+function escapeHtml(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
-
-
-// -----------------------------
-// ICONS
-// -----------------------------
-
-function getProviderIcon(category) {
-
-    if (category === "Tailoring")
-        return "✂";
-
-    if (category === "Laundry")
-        return "◌";
-
-    if (category === "Shoe Repair")
-        return "◈";
-
-    return "•";
-}
-
-
-// -----------------------------
-// START
-// -----------------------------
-
-loadProviders();

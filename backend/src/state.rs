@@ -1,135 +1,65 @@
-use std::sync::{Arc, RwLock};
-
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::{
-    Order,
-    Provider,
-    Service,
-};
-
-#[derive(Clone)]
-pub struct AppState {
-    pub providers: Arc<Vec<Provider>>,
-    pub services: Arc<Vec<Service>>,
-    pub orders: Arc<RwLock<Vec<Order>>>,
+#[derive(Clone, Serialize)]
+pub struct Provider {
+    pub id: String,
+    pub name: String,
+    pub category: String,
+    pub address: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub rating: f64,
+    pub services: Vec<Service>,
 }
 
-impl AppState {
-    pub fn new() -> Self {
-        let provider_1 = Provider {
-            id: Uuid::new_v4(),
-            name: "Sharma Tailors".into(),
-            category: "Tailoring".into(),
-            description:
-                "Classic tailoring, alterations and custom stitching."
-                    .into(),
-            rating: 4.8,
-            reviews: 142,
-            distance_km: 0.8,
-            location: "Main Market".into(),
-            verified: true,
-        };
+#[derive(Clone, Serialize)]
+pub struct Service {
+    pub id: String,
+    pub name: String,
+    pub price: u32,
+    pub estimated_minutes: u32,
+}
 
-        let provider_2 = Provider {
-            id: Uuid::new_v4(),
-            name: "FreshFold Laundry".into(),
-            category: "Laundry".into(),
-            description:
-                "Wash, fold, iron and doorstep laundry service."
-                    .into(),
-            rating: 4.7,
-            reviews: 218,
-            distance_km: 1.2,
-            location: "Station Road".into(),
-            verified: true,
-        };
+#[derive(Clone, Serialize)]
+pub struct Courier {
+    pub id: String,
+    pub name: String,
+    pub vehicle: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub rating: f64,
+    pub available: bool,
+}
 
-        let provider_3 = Provider {
-            id: Uuid::new_v4(),
-            name: "QuickFix Shoes".into(),
-            category: "Shoe Repair".into(),
-            description:
-                "Shoe repair, polishing and restoration."
-                    .into(),
-            rating: 4.6,
-            reviews: 87,
-            distance_km: 2.1,
-            location: "Market Street".into(),
-            verified: true,
-        };
+#[derive(Clone, Serialize)]
+pub struct Delivery {
+    pub id: String,
+    pub courier_id: String,
+    pub courier_name: String,
+    pub status: String,
+    pub distance_km: f64,
+    pub delivery_fee: u32,
+}
 
-        let services = vec![
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_1.id,
-                name: "Pant Alteration".into(),
-                description:
-                    "Professional pant length and waist alteration."
-                        .into(),
-                price: 120,
-                estimated_minutes: 180,
-            },
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_1.id,
-                name: "Shirt Alteration".into(),
-                description:
-                    "Fit and sleeve alterations."
-                        .into(),
-                price: 100,
-                estimated_minutes: 180,
-            },
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_1.id,
-                name: "Zip Replacement".into(),
-                description:
-                    "Replace broken trousers or jacket zips."
-                        .into(),
-                price: 80,
-                estimated_minutes: 120,
-            },
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_2.id,
-                name: "Wash & Fold".into(),
-                description:
-                    "Washed, dried and neatly folded."
-                        .into(),
-                price: 80,
-                estimated_minutes: 1440,
-            },
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_2.id,
-                name: "Ironing".into(),
-                description:
-                    "Professional ironing service."
-                        .into(),
-                price: 60,
-                estimated_minutes: 720,
-            },
-            Service {
-                id: Uuid::new_v4(),
-                provider_id: provider_3.id,
-                name: "Shoe Restoration".into(),
-                description:
-                    "Cleaning, polishing and basic restoration."
-                        .into(),
-                price: 250,
-                estimated_minutes: 1440,
-            },
-        ];
+#[derive(Clone, Serialize)]
+pub struct Order {
+    pub id: String,
+    pub customer_name: String,
+    pub provider_id: String,
+    pub provider_name: String,
+    pub service_id: String,
+    pub service_name: String,
+    pub service_price: u32,
+    pub delivery_fee: u32,
+    pub total_price: u32,
+    pub status: String,
+    pub delivery: Option<Delivery>,
+}
 
-        Self {
-            providers: Arc::new(vec![
-                provider_1,
-                provider_2,
-                provider_3,
-            ]),
-            services: Arc::new(services),
-            orders: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
+#[derive(Deserialize)]
+pub struct CreateOrder {
+    pub customer_name: String,
+    pub provider_id: String,
+    pub service_id: String,
 }

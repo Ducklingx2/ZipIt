@@ -4,112 +4,157 @@ use axum::{
     Json,
 };
 
-use uuid::Uuid;
-
 use crate::{
-    models::{
-        CreateOrder,
-        Order,
-    },
+    models::{CreateOrder, Delivery, Order},
     state::AppState,
 };
 
+fn distance(
+    lat1: f64,
+    lon1: f64,
+    lat2: f64,
+    lon2: f64,
+) -> f64 {
+    let lat_difference = lat1 - lat2;
+    let lon_difference = lon1 - lon2;
+
+    let raw_distance =
+        (lat_difference.powi(2) + lon_difference.powi(2)).sqrt();
+
+    raw_distance * 111.0
+}
+
 pub async fn health() -> &'static str {
-    "ZipIt API is running."
+    "ZipIt API is running"
 }
 
-pub async fn providers(
+pub async fn get_providers(
     State(state): State<AppState>,
-) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "providers": &*state.providers
-    }))
+) -> Json<Vec<crate::models::Provider>> {
+    Json((*state.providers).clone())
 }
 
-pub async fn provider(
+pub async fn get_provider(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let provider = state
-        .providers
-        .iter()
-        .find(|provider| provider.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    Path(id): Path<String>,
+) -> Result<Json<crate::models::Provider>, StatusCode> {
+    match state.providers.iter().find(|p| p.id == id) {
+        Some(provider) => Ok(Json(provider.clone())),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
 
-    let services: Vec<_> = state
-        .services
-        .iter()
-        .filter(|service| service.provider_id == id)
-        .collect();
+pub async fn get_couriers(
+    State(state): State<AppState>,
+) -> Json<Vec<crate::models::Courier>> {
+    let couriers = state.couriers.read().await;
 
-    Ok(Json(serde_json::json!({
-        "provider": provider,
-        "services": services
-    })))
+    Json(couriers.clone())
 }
 
 pub async fn create_order(
     State(state): State<AppState>,
-    Json(payload): Json<CreateOrder>,
+    Json(request): Json<CreateOrder>,
 ) -> Result<Json<Order>, StatusCode> {
-    let service = state
-        .services
-        .iter()
-        .find(|service| service.id == payload.service_id)
-        .ok_or(StatusCode::BAD_REQUEST)?;
 
-    if !state
+    let provider = match state
         .providers
         .iter()
-        .any(|provider| provider.id == payload.provider_id)
+        .find(|p| p.id == request.provider_id)
     {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    if service.provider_id != payload.provider_id {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let delivery_fee = 30;
-
-    let order = Order {
-        id: Uuid::new_v4(),
-
-        provider_id: payload.provider_id,
-        service_id: payload.service_id,
-
-        customer_name: payload.customer_name,
-
-        pickup_address: payload.pickup_address,
-        delivery_address: payload.delivery_address,
-
-        status: "placed".into(),
-
-        service_price: service.price,
-        delivery_fee,
-
-        total: service.price + delivery_fee,
+        Some(provider) => provider,
+        None => return Err(StatusCode::NOT_FOUND),
     };
 
-    state
-        .orders
-        .write()
-        .unwrap()
-        .push(order.clone());
+    let service = match provider
+        .services
+        .iter()
+        .find(|s| s.id == request.service_id)
+    {
+        Some(service) => service,
+        None => return Err(StatusCode::NOT_FOUND),
+    };
+
+    let mut couriers = state.couriers.write().await;
+
+    let mut best_index: Option<usize> = None;
+    let mut best_distance = f64::MAX;
+
+    for (index, courier) in couriers.iter().enumerate() {
+        if !courier.available {
+            continue;
+        }
+
+        let courier_distance = distance(
+            courier.latitude,
+            courier.longitude,
+            18.5204,
+            73.8567,
+        );
+
+        if courier_distance < best_distance {
+            best_distance = courier_distance;
+            best_index = Some(index);
+        }
+    }
+
+    let courier_index = match best_index {
+        Some(index) => index,
+        None => return Err(StatusCode::SERVICE_UNAVAILABLE),
+    };
+
+    let courier = &mut couriers[courier_index];
+
+    courier.available = false;
+
+    let delivery_fee =
+        if best_distance < 2.0 {
+            40
+        } else if best_distance < 5.0 {
+            60
+        } else {
+            90
+        };
+
+    let delivery = Delivery {
+        id: uuid::Uuid::new_v4().to_string(),
+        courier_id: courier.id.clone(),
+        courier_name: courier.name.clone(),
+        status: "Courier assigned".into(),
+        distance_km: (best_distance * 10.0).round() / 10.0,
+        delivery_fee,
+    };
+
+    let order = Order {
+        id: uuid::Uuid::new_v4().to_string(),
+        customer_name: request.customer_name,
+        provider_id: provider.id.clone(),
+        provider_name: provider.name.clone(),
+        service_id: service.id.clone(),
+        service_name: service.name.clone(),
+        service_price: service.price,
+        delivery_fee,
+        total_price: service.price + delivery_fee,
+        status: "Courier assigned".into(),
+        delivery: Some(delivery),
+    };
+
+    let mut orders = state.orders.write().await;
+
+    orders.push(order.clone());
 
     Ok(Json(order))
 }
 
 pub async fn get_order(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> Result<Json<Order>, StatusCode> {
-    let orders = state.orders.read().unwrap();
 
-    let order = orders
-        .iter()
-        .find(|order| order.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    let orders = state.orders.read().await;
 
-    Ok(Json(order.clone()))
+    match orders.iter().find(|order| order.id == id) {
+        Some(order) => Ok(Json(order.clone())),
+        None => Err(StatusCode::NOT_FOUND),
+    }
 }

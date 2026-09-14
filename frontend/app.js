@@ -1,63 +1,62 @@
 const API =
     "http://localhost:10000/api";
 
+
 let providers = [];
 let selectedProvider = null;
 let selectedService = null;
+let currentOrder = null;
 
 
-/* LOAD PROVIDERS */
+// -----------------------------
+// INITIAL LOAD
+// -----------------------------
 
 async function loadProviders() {
+
+    const container =
+        document.getElementById("provider-list");
 
     try {
 
         const response =
-            await fetch(
-                `${API}/providers`
-            );
+            await fetch(`${API}/providers`);
 
-        const data =
-            await response.json();
+        if (!response.ok) {
+            throw new Error("Failed to load providers");
+        }
 
         providers =
-            data.providers;
+            await response.json();
 
         renderProviders();
-        renderHeroProviders();
 
     } catch (error) {
 
-        console.error(
-            "Failed to load providers:",
-            error
-        );
+        console.error(error);
 
-        document.getElementById(
-            "providers"
-        ).innerHTML = `
-            <p>
-                Couldn't connect to ZipIt's API.
-            </p>
+        container.innerHTML = `
+            <div class="error">
+                Could not connect to ZipIt.
+                Make sure the Rust backend is running.
+            </div>
         `;
     }
 }
 
 
-/* PROVIDERS */
+// -----------------------------
+// PROVIDER CARDS
+// -----------------------------
 
-function renderProviders(
-    list = providers
-) {
+function renderProviders() {
 
     const container =
-        document.getElementById(
-            "providers"
-        );
+        document.getElementById("provider-list");
 
     container.innerHTML = "";
 
-    list.forEach(provider => {
+    providers.forEach(provider => {
 
         const card =
             document.createElement("div");
@@ -66,210 +65,223 @@ function renderProviders(
             "provider-card";
 
         card.innerHTML = `
-            <div class="provider-visual">
-                ${provider.category.toUpperCase()}
+
+            <div class="provider-icon">
+                ${getProviderIcon(provider.category)}
             </div>
 
-            <div class="provider-content">
+            <div class="provider-info">
 
-                <h3>
-                    ${provider.name}
-                    ${provider.verified ? "✓" : ""}
-                </h3>
+                <div class="provider-top">
+
+                    <h3>
+                        ${provider.name}
+                    </h3>
+
+                    <span class="rating">
+                        ★ ${provider.rating}
+                    </span>
+
+                </div>
 
                 <p class="category">
                     ${provider.category}
                 </p>
 
-                <div class="meta">
-                    <span>
-                        ★ ${provider.rating}
-                        (${provider.reviews})
-                    </span>
+                <p class="address">
+                    ${provider.address}
+                </p>
 
-                    <span>
-                        ${provider.distance_km} km
-                    </span>
-                </div>
+            </div>
 
+            <div class="arrow">
+                →
             </div>
         `;
 
-        card.onclick =
-            () => showProvider(
-                provider.id
-            );
+        card.onclick = () =>
+            selectProvider(provider.id);
 
         container.appendChild(card);
     });
 }
 
 
-/* HERO */
+// -----------------------------
+// SELECT PROVIDER
+// -----------------------------
 
-function renderHeroProviders() {
+async function selectProvider(id) {
 
-    const container =
-        document.getElementById(
-            "heroProviders"
-        );
+    try {
 
-    container.innerHTML = "";
+        const response =
+            await fetch(`${API}/providers/${id}`);
 
-    providers
-        .slice(0, 2)
-        .forEach(provider => {
+        selectedProvider =
+            await response.json();
 
-            container.innerHTML += `
-                <div class="hero-mini">
+        renderProviderDetail();
 
-                    <div class="hero-mini-icon">
-                        ${provider.category === "Tailoring"
-                            ? "✂"
-                            : "🧺"}
-                    </div>
+        showSection("provider-section");
 
-                    <div>
-                        <strong>
-                            ${provider.name}
-                        </strong>
+    } catch (error) {
 
-                        <p>
-                            ${provider.distance_km}
-                            km · ★
-                            ${provider.rating}
-                        </p>
-                    </div>
+        console.error(error);
 
-                </div>
-            `;
-        });
+        alert("Could not load this provider.");
+    }
 }
 
 
-/* PROVIDER PAGE */
+// -----------------------------
+// PROVIDER DETAIL
+// -----------------------------
 
-async function showProvider(id) {
+function renderProviderDetail() {
 
-    const provider =
-        providers.find(
-            p => p.id === id
-        );
+    const container =
+        document.getElementById("provider-detail");
 
-    if (!provider) return;
+    container.innerHTML = `
 
-    selectedProvider =
-        provider;
-
-    document
-        .getElementById("explore")
-        .classList.add("hidden");
-
-    document
-        .getElementById("tracking")
-        .classList.add("hidden");
-
-    document
-        .getElementById("checkout")
-        .classList.add("hidden");
-
-    const view =
-        document.getElementById(
-            "providerView"
-        );
-
-    view.classList.remove(
-        "hidden"
-    );
-
-    const response =
-        await fetch(
-            `${API}/providers/${id}`
-        );
-
-    const data =
-        await response.json();
-
-    document.getElementById(
-        "providerDetails"
-    ).innerHTML = `
-
-        <div class="provider-detail">
-
-            <div class="provider-detail-visual">
-                ${provider.category.toUpperCase()}
-            </div>
+        <div class="provider-header">
 
             <div>
 
-                <div class="eyebrow">
-                    ${provider.category}
-                </div>
-
-                <h1>
-                    ${provider.name}
-                </h1>
-
-                <p>
-                    ${provider.description}
-                </p>
-
-                <p>
-                    ★ ${provider.rating}
-                    · ${provider.reviews} reviews
-                    · ${provider.distance_km} km
+                <p class="eyebrow">
+                    ${selectedProvider.category}
                 </p>
 
                 <h2>
-                    Services
+                    ${selectedProvider.name}
                 </h2>
 
-                <div class="service-list">
+                <p>
+                    ★ ${selectedProvider.rating}
+                    · ${selectedProvider.address}
+                </p>
 
-                    ${data.services
-                        .map(service => `
-                            <div class="service">
+            </div>
 
-                                <div
-                                    class="service-info"
-                                >
+        </div>
 
-                                    <h3>
-                                        ${service.name}
-                                    </h3>
+        <h3 class="service-title">
+            Choose what you need
+        </h3>
 
-                                    <p>
-                                        ${service.description}
-                                    </p>
+        <div class="service-list">
 
-                                </div>
+            ${selectedProvider.services
+                .map(service => `
 
-                                <div>
+                    <div
+                        class="service-card"
+                        onclick="selectService('${service.id}')"
+                    >
 
-                                    <div
-                                        class="service-price"
-                                    >
-                                        ₹${service.price}
-                                    </div>
+                        <div>
 
-                                    <button
-                                        class="primary"
-                                        onclick="startCheckout(
-                                            '${service.id}',
-                                            '${service.name}',
-                                            ${service.price}
-                                        )"
-                                    >
-                                        Select
-                                    </button>
+                            <h3>
+                                ${service.name}
+                            </h3>
 
-                                </div>
+                            <p>
+                                Approx.
+                                ${service.estimated_minutes}
+                                min
+                            </p>
 
-                            </div>
-                        `)
-                        .join("")}
+                        </div>
 
-                </div>
+                        <strong>
+                            ₹${service.price}
+                        </strong>
+
+                    </div>
+
+                `)
+                .join("")}
+
+        </div>
+    `;
+}
+
+
+// -----------------------------
+// SELECT SERVICE
+// -----------------------------
+
+function selectService(serviceId) {
+
+    selectedService =
+        selectedProvider.services.find(
+            service => service.id === serviceId
+        );
+
+    renderCheckout();
+
+    showSection("checkout-section");
+}
+
+
+// -----------------------------
+// CHECKOUT
+// -----------------------------
+
+function renderCheckout() {
+
+    const container =
+        document.getElementById("checkout-details");
+
+    const estimatedDelivery =
+        60;
+
+    const total =
+        selectedService.price +
+        estimatedDelivery;
+
+    container.innerHTML = `
+
+        <div class="order-summary">
+
+            <div>
+                <span>Service</span>
+                <strong>
+                    ${selectedService.name}
+                </strong>
+            </div>
+
+            <div>
+                <span>Provider</span>
+                <strong>
+                    ${selectedProvider.name}
+                </strong>
+            </div>
+
+            <div>
+                <span>Service price</span>
+                <strong>
+                    ₹${selectedService.price}
+                </strong>
+            </div>
+
+            <div>
+                <span>Estimated delivery</span>
+                <strong>
+                    ₹${estimatedDelivery}
+                </strong>
+            </div>
+
+            <div class="total">
+
+                <span>
+                    Estimated total
+                </span>
+
+                <strong>
+                    ₹${total}
+                </strong>
 
             </div>
 
@@ -278,139 +290,40 @@ async function showProvider(id) {
 }
 
 
-/* CHECKOUT */
-
-function startCheckout(
-    serviceId,
-    serviceName,
-    price
-) {
-
-    selectedService = {
-        id: serviceId,
-        name: serviceName,
-        price
-    };
-
-    document
-        .getElementById("providerView")
-        .classList.add("hidden");
-
-    const checkout =
-        document.getElementById(
-            "checkout"
-        );
-
-    checkout.classList.remove(
-        "hidden"
-    );
-
-    document.getElementById(
-        "checkoutContent"
-    ).innerHTML = `
-
-        <h1>
-            Your order
-        </h1>
-
-        <p>
-            ${selectedProvider.name}
-        </p>
-
-        <h3>
-            ${serviceName}
-        </h3>
-
-        <p>
-            Service · ₹${price}
-        </p>
-
-        <label>
-            Your name
-
-            <input
-                id="customerName"
-                placeholder="Your name"
-            >
-        </label>
-
-        <label>
-            Pickup address
-
-            <input
-                id="pickupAddress"
-                placeholder="Where should we pick it up?"
-            >
-        </label>
-
-        <label>
-            Delivery address
-
-            <input
-                id="deliveryAddress"
-                placeholder="Where should we deliver it?"
-            >
-        </label>
-
-        <div class="total">
-
-            <span>
-                Total
-            </span>
-
-            <span>
-                ₹${price + 30}
-            </span>
-
-        </div>
-
-        <br>
-
-        <button
-            class="primary"
-            onclick="placeOrder()"
-        >
-            Place Order
-        </button>
-    `;
-}
-
-
-/* CREATE ORDER */
+// -----------------------------
+// CREATE ORDER
+// -----------------------------
 
 async function placeOrder() {
 
-    const customerName =
-        document.getElementById(
-            "customerName"
-        ).value;
+    const name =
+        document
+            .getElementById("customer-name")
+            .value
+            .trim();
 
-    const pickupAddress =
-        document.getElementById(
-            "pickupAddress"
-        ).value;
+    if (!name) {
 
-    const deliveryAddress =
-        document.getElementById(
-            "deliveryAddress"
-        ).value;
-
-    if (
-        !customerName ||
-        !pickupAddress ||
-        !deliveryAddress
-    ) {
-        alert(
-            "Please fill in all fields."
-        );
+        alert("Enter your name first.");
 
         return;
     }
 
-    const response =
-        await fetch(
-            `${API}/orders`,
-            {
+    const button =
+        document.querySelector(
+            "#checkout-section .primary-button"
+        );
+
+    button.disabled = true;
+
+    button.textContent =
+        "Finding nearby courier...";
+
+    try {
+
+        const response =
+            await fetch(`${API}/orders`, {
+
                 method: "POST",
 
                 headers: {
@@ -419,213 +332,197 @@ async function placeOrder() {
                 },
 
                 body: JSON.stringify({
+
+                    customer_name: name,
+
                     provider_id:
                         selectedProvider.id,
 
                     service_id:
-                        selectedService.id,
-
-                    customer_name:
-                        customerName,
-
-                    pickup_address:
-                        pickupAddress,
-
-                    delivery_address:
-                        deliveryAddress
+                        selectedService.id
                 })
-            }
-        );
+            });
 
-    if (!response.ok) {
+        if (!response.ok) {
+
+            throw new Error(
+                "No courier available"
+            );
+        }
+
+        currentOrder =
+            await response.json();
+
+        renderTracking();
+
+        showSection("tracking-section");
+
+    } catch (error) {
+
+        console.error(error);
 
         alert(
-            "Couldn't place your order."
+            "We couldn't find a courier right now."
         );
 
-        return;
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "Find me a courier";
     }
-
-    const order =
-        await response.json();
-
-    showTracking(order);
 }
 
 
-/* TRACKING */
+// -----------------------------
+// TRACKING
+// -----------------------------
 
-function showTracking(order) {
+function renderTracking() {
 
-    document
-        .getElementById("checkout")
-        .classList.add("hidden");
-
-    document
-        .getElementById("providerView")
-        .classList.add("hidden");
-
-    const tracking =
+    const container =
         document.getElementById(
-            "tracking"
+            "tracking-details"
         );
 
-    tracking.classList.remove(
-        "hidden"
-    );
+    const delivery =
+        currentOrder.delivery;
 
-    document.getElementById(
-        "trackingContent"
-    ).innerHTML = `
+    container.innerHTML = `
 
-        <div class="tracking-card">
+        <div class="courier-card">
 
-            <div class="eyebrow">
-                ZIPIT ORDER
+            <div class="courier-avatar">
+                ${delivery.courier_name
+                    .charAt(0)
+                    .toUpperCase()}
             </div>
 
-            <h1>
-                #${order.id
-                    .slice(0, 8)
-                    .toUpperCase()}
-            </h1>
+            <div>
 
-            <p>
-                ${selectedProvider.name}
-            </p>
+                <p class="eyebrow">
+                    YOUR COURIER
+                </p>
 
-            <div class="tracking-line">
+                <h3>
+                    ${delivery.courier_name}
+                </h3>
 
-                ${trackingStep(
-                    "Order placed",
-                    true
-                )}
+                <p>
+                    ${delivery.distance_km} km away
+                </p>
 
-                ${trackingStep(
-                    "Provider confirmed",
-                    false
-                )}
+            </div>
 
-                ${trackingStep(
-                    "Pickup assigned",
-                    false
-                )}
-
-                ${trackingStep(
-                    "Processing",
-                    false
-                )}
-
-                ${trackingStep(
-                    "Ready",
-                    false
-                )}
-
-                ${trackingStep(
-                    "Delivered",
-                    false
-                )}
-
+            <div class="courier-status">
+                ● Online
             </div>
 
         </div>
-    `;
-}
 
-
-function trackingStep(
-    text,
-    active
-) {
-
-    return `
-        <div class="tracking-step">
-
-            <div
-                class="dot
-                ${active ? "active" : ""}"
-            ></div>
+        <div class="delivery-price">
 
             <span>
-                ${text}
+                Delivery
             </span>
+
+            <strong>
+                ₹${delivery.delivery_fee}
+            </strong>
+
+        </div>
+
+        <div class="tracking-order">
+
+            <span>
+                Order
+            </span>
+
+            <code>
+                ${currentOrder.id.slice(0, 8)}
+            </code>
 
         </div>
     `;
 }
 
 
-/* NAVIGATION */
+// -----------------------------
+// NAVIGATION
+// -----------------------------
 
-function showExplore() {
+function showSection(sectionId) {
+
+    [
+        "provider-section",
+        "checkout-section",
+        "tracking-section"
+    ].forEach(id => {
+
+        document
+            .getElementById(id)
+            .classList.add("hidden");
+
+    });
 
     document
-        .getElementById("providerView")
-        .classList.add("hidden");
-
-    document
-        .getElementById("checkout")
-        .classList.add("hidden");
-
-    document
-        .getElementById("tracking")
-        .classList.add("hidden");
-
-    document
-        .getElementById("explore")
+        .getElementById(sectionId)
         .classList.remove("hidden");
 
-    window.scrollTo({
-        top: document
-            .getElementById("explore")
-            .offsetTop - 80,
-
-        behavior: "smooth"
-    });
-}
-
-
-function scrollToExplore() {
-
     document
-        .getElementById("explore")
+        .getElementById(sectionId)
         .scrollIntoView({
             behavior: "smooth"
         });
 }
 
 
-/* SEARCH */
+function goBackToProviders() {
 
-document
-    .getElementById("search")
-    .addEventListener(
-        "input",
-        event => {
+    document
+        .getElementById("provider-section")
+        .classList.add("hidden");
 
-            const query =
-                event.target.value
-                    .toLowerCase();
-
-            const filtered =
-                providers.filter(
-                    provider =>
-                        provider.name
-                            .toLowerCase()
-                            .includes(query) ||
-
-                        provider.category
-                            .toLowerCase()
-                            .includes(query)
-                );
-
-            renderProviders(
-                filtered
-            );
-        }
-    );
+    document
+        .getElementById("services")
+        .scrollIntoView({
+            behavior: "smooth"
+        });
+}
 
 
-/* START */
+function scrollToServices() {
+
+    document
+        .getElementById("services")
+        .scrollIntoView({
+            behavior: "smooth"
+        });
+}
+
+
+// -----------------------------
+// ICONS
+// -----------------------------
+
+function getProviderIcon(category) {
+
+    if (category === "Tailoring")
+        return "✂";
+
+    if (category === "Laundry")
+        return "◌";
+
+    if (category === "Shoe Repair")
+        return "◈";
+
+    return "•";
+}
+
+
+// -----------------------------
+// START
+// -----------------------------
 
 loadProviders();

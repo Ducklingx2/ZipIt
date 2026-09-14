@@ -1,52 +1,65 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Provider {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub category: String,
-    pub description: String,
-    pub rating: f32,
-    pub reviews: u32,
-    pub distance_km: f32,
-    pub location: String,
-    pub verified: bool,
+    pub address: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub rating: f64,
+    pub services: Vec<Service>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Service {
-    pub id: Uuid,
-    pub provider_id: Uuid,
+    pub id: String,
     pub name: String,
-    pub description: String,
     pub price: u32,
     pub estimated_minutes: u32,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct Order {
-    pub id: Uuid,
-    pub provider_id: Uuid,
-    pub service_id: Uuid,
-
-    pub customer_name: String,
-    pub pickup_address: String,
-    pub delivery_address: String,
-
-    pub status: String,
-
-    pub service_price: u32,
-    pub delivery_fee: u32,
-    pub total: u32,
+#[derive(Clone, Serialize)]
+pub struct Courier {
+    pub id: String,
+    pub name: String,
+    pub vehicle: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub rating: f64,
+    pub available: bool,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateOrder {
-    pub provider_id: Uuid,
-    pub service_id: Uuid,
+#[derive(Clone, Serialize)]
+pub struct Delivery {
+    pub id: String,
+    pub courier_id: String,
+    pub courier_name: String,
+    pub status: String,
+    pub distance_km: f64,
+    pub delivery_fee: u32,
+}
 
+#[derive(Clone, Serialize)]
+pub struct Order {
+    pub id: String,
     pub customer_name: String,
-    pub pickup_address: String,
-    pub delivery_address: String,
+    pub provider_id: String,
+    pub provider_name: String,
+    pub service_id: String,
+    pub service_name: String,
+    pub service_price: u32,
+    pub delivery_fee: u32,
+    pub total_price: u32,
+    pub status: String,
+    pub delivery: Option<Delivery>,
+}
+
+#[derive(Deserialize)]
+pub struct CreateOrder {
+    pub customer_name: String,
+    pub provider_id: String,
+    pub service_id: String,
 }

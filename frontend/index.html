@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
 
@@ -11,79 +10,162 @@
 
     <title>ZipIt</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header class="navbar">
 
-    <a
-        href="#"
-        class="logo"
-    >
-        ZipIt<span>.</span>
-    </a>
+    <div class="logo">
+        Zip<span>It</span>
+    </div>
 
     <nav>
-        <a href="#explore">
-            Explore
-        </a>
-
-        <a href="#orders">
-            Orders
-        </a>
+        <a href="#home">Home</a>
+        <a href="#services">Services</a>
+        <a href="#how">How it works</a>
     </nav>
+
+    <button class="nav-button">
+        Become a Courier
+    </button>
 
 </header>
 
+
 <main>
 
-<section class="hero">
+<section class="hero" id="home">
 
     <div class="hero-content">
 
-        <div class="eyebrow">
-            LOCAL SERVICES · DELIVERED
-        </div>
+        <p class="eyebrow">
+            LOCAL SERVICES. PICKED UP & DELIVERED.
+        </p>
 
         <h1>
-            Get it fixed.
-            <br>
-            Get it cleaned.
-            <br>
-            <span>Get it ZipIt.</span>
+            Your stuff.
+            <span>Handled.</span>
         </h1>
 
-        <p>
-            Local tailors, laundries, repair shops
-            and more. We pick it up, get it sorted,
-            and bring it back.
+        <p class="hero-text">
+            Need something tailored, washed, repaired or restored?
+            ZipIt finds a nearby courier to take it there and bring it back.
         </p>
 
         <button
-            class="primary"
-            onclick="scrollToExplore()"
+            class="primary-button"
+            onclick="scrollToServices()"
         >
-            Find a service
+            Get started
         </button>
 
     </div>
 
     <div class="hero-card">
 
-        <div class="hero-card-top">
-            <span>Nearby</span>
+        <div class="map-grid"></div>
 
-            <span class="live">
-                ● LIVE
-            </span>
+        <div class="map-point customer">
+            <span></span>
+            You
         </div>
 
-        <div id="heroProviders"></div>
+        <div class="map-point courier">
+            <span></span>
+            Courier
+        </div>
+
+        <div class="map-point provider">
+            <span></span>
+            Tailor
+        </div>
+
+        <div class="route"></div>
+
+    </div>
+
+</section>
+
+
+<section class="section" id="services">
+
+    <div class="section-heading">
+
+        <p class="eyebrow">
+            WHAT DO YOU NEED?
+        </p>
+
+        <h2>
+            Pick a service.
+        </h2>
+
+        <p>
+            We'll handle getting your stuff there.
+        </p>
+
+    </div>
+
+    <div id="provider-list" class="provider-grid">
+        <div class="loading">
+            Loading nearby services...
+        </div>
+    </div>
+
+</section>
+
+
+<section
+    class="section hidden"
+    id="provider-section"
+>
+
+    <button
+        class="back-button"
+        onclick="goBackToProviders()"
+    >
+        ← Back
+    </button>
+
+    <div id="provider-detail"></div>
+
+</section>
+
+
+<section
+    class="section hidden"
+    id="checkout-section"
+>
+
+    <div class="checkout-card">
+
+        <p class="eyebrow">
+            CHECKOUT
+        </p>
+
+        <h2>
+            Almost there.
+        </h2>
+
+        <div id="checkout-details"></div>
+
+        <label>
+            Your name
+
+            <input
+                id="customer-name"
+                type="text"
+                placeholder="Enter your name"
+            >
+        </label>
+
+        <button
+            class="primary-button full"
+            onclick="placeOrder()"
+        >
+            Find me a courier
+        </button>
 
     </div>
 
@@ -91,81 +173,129 @@
 
 
 <section
-    id="explore"
-    class="section"
+    class="section hidden"
+    id="tracking-section"
 >
 
-    <div class="section-header">
+    <div class="tracking-card">
 
-        <div>
-            <div class="eyebrow">
-                EXPLORE
+        <p class="eyebrow">
+            ZIPIT TRACKING
+        </p>
+
+        <h2>
+            Your courier is on it.
+        </h2>
+
+        <div id="tracking-details"></div>
+
+        <div class="tracking-timeline">
+
+            <div class="timeline-item active">
+                <div class="timeline-dot"></div>
+
+                <div>
+                    <strong>Courier assigned</strong>
+                    <p>Someone nearby accepted your delivery.</p>
+                </div>
             </div>
 
-            <h2>
-                Services near you
-            </h2>
-        </div>
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
 
-        <input
-            id="search"
-            class="search"
-            placeholder="Search services..."
-        >
+                <div>
+                    <strong>Pickup</strong>
+                    <p>Courier picks up your item.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+
+                <div>
+                    <strong>At provider</strong>
+                    <p>Your item reaches the tailor or service.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+
+                <div>
+                    <strong>Returning</strong>
+                    <p>Finished item is on its way back.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+
+                <div>
+                    <strong>Delivered</strong>
+                    <p>Your item is back with you.</p>
+                </div>
+            </div>
+
+        </div>
 
     </div>
 
-    <div
-        id="providers"
-        class="provider-grid"
-    ></div>
-
 </section>
 
 
-<section
-    id="providerView"
-    class="section hidden"
->
+<section class="section how" id="how">
 
-    <button
-        class="back"
-        onclick="showExplore()"
-    >
-        ← Back
-    </button>
+    <div class="section-heading">
 
-    <div id="providerDetails"></div>
+        <p class="eyebrow">
+            HOW ZIPIT WORKS
+        </p>
 
-</section>
+        <h2>
+            Three steps.
+        </h2>
 
+    </div>
 
-<section
-    id="checkout"
-    class="section hidden"
->
+    <div class="steps">
 
-    <button
-        class="back"
-        onclick="showExplore()"
-    >
-        ← Back
-    </button>
+        <div class="step">
+            <span>01</span>
 
-    <div
-        id="checkoutContent"
-        class="checkout"
-    ></div>
+            <h3>
+                Choose
+            </h3>
 
-</section>
+            <p>
+                Pick a local tailor, laundry or repair shop.
+            </p>
+        </div>
 
+        <div class="step">
+            <span>02</span>
 
-<section
-    id="tracking"
-    class="section hidden"
->
+            <h3>
+                Zip
+            </h3>
 
-    <div id="trackingContent"></div>
+            <p>
+                ZipIt finds a nearby courier to pick up your stuff.
+            </p>
+        </div>
+
+        <div class="step">
+            <span>03</span>
+
+            <h3>
+                Done
+            </h3>
+
+            <p>
+                Your item comes back when the service is finished.
+            </p>
+        </div>
+
+    </div>
 
 </section>
 
@@ -174,15 +304,14 @@
 
 <footer>
 
-    <strong>
-        ZipIt.
-    </strong>
+    <strong>ZipIt</strong>
 
-    <span>
-        Local services, without the hassle.
-    </span>
+    <p>
+        Local services, without the local running around.
+    </p>
 
 </footer>
+
 
 <script src="app.js"></script>
 
